@@ -113,36 +113,43 @@ export function CharacterInput({ value, onChange }) {
         onChange={(e) => up.handleFiles(e.target.files)}
       />
       {value ? (
-        <div className="relative overflow-hidden rounded-xl bg-black">
+        <div className="relative overflow-hidden rounded-xl bg-[#111] border border-white/10 min-h-[220px] flex items-center justify-center">
           <img
-            src={value.url}
+            src={value.previewUrl || value.url}
             alt="Nhân vật"
-            onClick={() => openLightbox(value.url, 'image')}
+            onClick={() => openLightbox(value.previewUrl || value.url, 'image')}
+            onError={(e) => {
+              if (value.previewUrl && e.currentTarget.src !== value.previewUrl) {
+                e.currentTarget.src = value.previewUrl;
+              }
+            }}
             className={`w-full cursor-zoom-in ${
               fit === 'cover'
                 ? 'h-56 object-cover'
-                : 'h-auto max-h-[460px] object-contain'
+                : 'h-auto max-h-[460px] min-h-[200px] object-contain p-1'
             }`}
           />
-          <div className="absolute right-2 top-2 flex items-center gap-1.5">
+          <div className="absolute top-0 inset-x-0 flex items-center justify-end gap-1.5 p-2 bg-gradient-to-b from-black/80 via-black/40 to-transparent z-10">
             <IconButton
               label="Xem trước ảnh nhân vật"
               icon="ph-eye"
-              onClick={() => openLightbox(value.url, 'image')}
+              onClick={() => openLightbox(value.previewUrl || value.url, 'image')}
             />
             <IconButton label="Xoá ảnh nhân vật" icon="ph-x" onClick={() => onChange(null)} />
           </div>
-          <span className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[11px] text-[#c7ff44]">
-            @image1
-          </span>
-          {value.name ? (
-            <span className="absolute bottom-2 right-2 max-w-[60%] truncate rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-[#b0b0b0]">
-              {shortName(value.name, 22)}
+          <div className="absolute bottom-0 inset-x-0 flex items-center justify-between gap-2 p-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10">
+            <span className="shrink-0 rounded-full bg-black/80 px-2 py-0.5 text-[11px] font-bold text-[#c7ff44]">
+              @image1
             </span>
-          ) : null}
+            {value.name ? (
+              <span className="truncate rounded-full bg-black/80 px-2 py-0.5 text-[10px] text-[#b0b0b0]" title={value.name}>
+                {shortName(value.name, 22)}
+              </span>
+            ) : null}
+          </div>
         </div>
       ) : (
-        <div className="flex h-56 items-center justify-center rounded-xl bg-black text-sm text-[#777777]">
+        <div className="flex h-56 items-center justify-center rounded-xl bg-black/40 border border-dashed border-white/10 text-sm text-[#777777]">
           {up.busy ? 'Đang tải lên…' : 'Chưa có ảnh nhân vật'}
         </div>
       )}
@@ -241,18 +248,27 @@ export function FashionInput({ items, onChange, lockedUrls, onResetLocks }) {
             {list.map((it, index) => {
               const isLocked = locked.includes(it.url);
               return (
-                <div key={it.url ? `${it.url}_${index}` : index} className="relative overflow-hidden rounded-xl bg-black">
-                  <div className="h-auto max-h-[320px] w-full">
-                    <img
-                      src={it.url}
-                      alt={it.name || `Thời trang ${index + 1}`}
-                      loading="lazy"
-                      className={`h-full w-full ${FIT_CLASS[fit] || 'object-contain'} ${
-                        isLocked ? 'opacity-35' : ''
-                      }`}
-                    />
-                  </div>
-                  <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
+                <div
+                  key={it.url ? `${it.url}_${index}` : index}
+                  className={`group relative overflow-hidden rounded-xl bg-[#111] border min-h-[160px] h-44 flex items-center justify-center ${
+                    isLocked ? 'border-[#f59e0b]' : 'border-white/10'
+                  }`}
+                >
+                  <img
+                    src={it.previewUrl || it.url}
+                    alt={it.name || `Thời trang ${index + 1}`}
+                    loading="lazy"
+                    onClick={() => preview(index)}
+                    onError={(e) => {
+                      if (it.previewUrl && e.currentTarget.src !== it.previewUrl) {
+                        e.currentTarget.src = it.previewUrl;
+                      }
+                    }}
+                    className={`h-full w-full cursor-zoom-in ${
+                      fit === 'cover' ? 'object-cover' : 'object-contain p-1'
+                    } ${isLocked ? 'opacity-35' : ''}`}
+                  />
+                  <div className="absolute top-0 inset-x-0 flex items-center justify-end gap-1 p-1.5 bg-gradient-to-b from-black/80 via-black/40 to-transparent z-10">
                     <IconButton
                       label={`Xem trước ảnh ${index + 1}`}
                       icon="ph-eye"
@@ -264,14 +280,16 @@ export function FashionInput({ items, onChange, lockedUrls, onResetLocks }) {
                       onClick={() => remove(it.url)}
                     />
                   </div>
-                  {isLocked ? (
-                    <span className="absolute left-1.5 top-1.5 rounded-full bg-black/80 px-1.5 py-0.5 text-[10px] text-[#f59e0b]">
-                      đã dùng
+                  <div className="absolute bottom-0 inset-x-0 flex items-center justify-between gap-1 p-1.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10">
+                    {isLocked ? (
+                      <span className="shrink-0 rounded-full bg-black/80 px-1.5 py-0.5 text-[10px] text-[#f59e0b]">
+                        đã dùng
+                      </span>
+                    ) : <span />}
+                    <span className="truncate rounded-full bg-black/80 px-1.5 py-0.5 text-[10px] text-[#b0b0b0]" title={it.name}>
+                      {shortName(it.name || `#${index + 1}`, 18)}
                     </span>
-                  ) : null}
-                  <span className="absolute inset-x-1.5 bottom-1.5 truncate rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-[#b0b0b0]">
-                    {shortName(it.name || `#${index + 1}`, 20)}
-                  </span>
+                  </div>
                 </div>
               );
             })}
@@ -421,10 +439,13 @@ export function VideoInput({ items, onChange, lockedUrls, onResetLocks }) {
             {list.map((it, index) => {
               const isLocked = locked.includes(it.url);
               return (
-                <div key={it.url ? `${it.url}_${index}` : index} className="relative overflow-hidden rounded-xl bg-black">
+                <div
+                  key={it.url ? `${it.url}_${index}` : index}
+                  className="group relative overflow-hidden rounded-xl bg-[#111] border border-white/10 min-h-[140px] flex items-center justify-center"
+                >
                   <div className="aspect-video w-full">
                     <video
-                      src={it.url}
+                      src={it.previewUrl || it.url}
                       className={`h-full w-full object-contain ${isLocked ? 'opacity-35' : ''}`}
                       preload="metadata"
                       muted
@@ -432,29 +453,33 @@ export function VideoInput({ items, onChange, lockedUrls, onResetLocks }) {
                       controls
                     />
                   </div>
-                  <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
-                    <IconButton
-                      label={`Xem trước video ${index + 1}`}
-                      icon="ph-eye"
-                      onClick={() => preview(index)}
-                    />
-                    <IconButton
-                      label={`Xoá video ${index + 1}`}
-                      icon="ph-x"
-                      onClick={() => remove(it.url)}
-                    />
-                  </div>
-                  <span className="absolute left-1.5 top-1.5 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-bold text-[#c7ff44]">
-                    {Number(it.seconds) > 0 ? formatSeconds(it.seconds) : 'đang đo…'}
-                  </span>
-                  {isLocked ? (
-                    <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/80 px-1.5 py-0.5 text-[10px] text-[#f59e0b]">
-                      đã dùng
+                  <div className="absolute top-0 inset-x-0 flex items-center justify-between p-1.5 bg-gradient-to-b from-black/80 via-black/40 to-transparent z-10">
+                    <span className="rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-bold text-[#c7ff44]">
+                      {Number(it.seconds) > 0 ? formatSeconds(it.seconds) : 'đang đo…'}
                     </span>
-                  ) : null}
-                  <span className="absolute inset-x-1.5 bottom-1.5 max-w-[70%] truncate rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-[#b0b0b0]">
-                    {shortName(it.name || `@video${index + 1}`, 22)}
-                  </span>
+                    <div className="flex items-center gap-1">
+                      <IconButton
+                        label={`Xem trước video ${index + 1}`}
+                        icon="ph-eye"
+                        onClick={() => preview(index)}
+                      />
+                      <IconButton
+                        label={`Xoá video ${index + 1}`}
+                        icon="ph-x"
+                        onClick={() => remove(it.url)}
+                      />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 inset-x-0 flex items-center justify-between gap-1 p-1.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10">
+                    {isLocked ? (
+                      <span className="shrink-0 rounded-full bg-black/80 px-1.5 py-0.5 text-[10px] text-[#f59e0b]">
+                        đã dùng
+                      </span>
+                    ) : <span />}
+                    <span className="truncate rounded-full bg-black/80 px-1.5 py-0.5 text-[10px] text-[#b0b0b0]" title={it.name}>
+                      {shortName(it.name || `@video${index + 1}`, 22)}
+                    </span>
+                  </div>
                 </div>
               );
             })}
