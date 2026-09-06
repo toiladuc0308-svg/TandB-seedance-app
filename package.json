@@ -1,22 +1,22 @@
 {
-  "name": "code",
+  "name": "tandb-seedance-app",
   "version": "1.0.0",
-  "description": "",
+  "description": "TandB Seedance App - 79AI Integration",
   "main": "index.js",
-  "directories": {
-    "lib": "lib"
-  },
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
-  "devDependencies": {
+  "dependencies": {
     "@vitejs/plugin-react": "^6.1.1",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^4.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "vite": "^8.2.2"
