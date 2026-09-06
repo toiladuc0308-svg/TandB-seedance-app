@@ -150,6 +150,23 @@ export function CharacterInput({ value, onChange }) {
         <Ghost icon="ph-upload-simple" onClick={() => up.inputRef.current?.click()} disabled={up.busy}>
           Tải ảnh
         </Ghost>
+        <Ghost
+          icon="ph-link"
+          onClick={() => {
+            const url = window.prompt('Nhập hoặc dán link URL ảnh nhân vật (https://...):', value?.url || '');
+            if (url && url.trim()) {
+              const trimmed = url.trim();
+              if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+                alert('Vui lòng nhập link URL hợp lệ bắt đầu bằng https://');
+                return;
+              }
+              onChange({ url: trimmed, name: trimmed.split('/').pop()?.split('?')[0] || 'image.jpg' });
+            }
+          }}
+          disabled={up.busy}
+        >
+          Dán link
+        </Ghost>
         <Ghost icon="ph-images" onClick={() => up.fromAlbum(false)} disabled={up.busy}>
           Album
         </Ghost>
@@ -265,6 +282,26 @@ export function FashionInput({ items, onChange, lockedUrls, onResetLocks }) {
       <div className="mt-3 flex flex-wrap gap-2">
         <Ghost icon="ph-upload-simple" onClick={() => up.inputRef.current?.click()} disabled={up.busy}>
           Tải ảnh
+        </Ghost>
+        <Ghost
+          icon="ph-link"
+          onClick={() => {
+            const url = window.prompt('Nhập hoặc dán link URL ảnh thời trang (https://...):');
+            if (url && url.trim()) {
+              const trimmed = url.trim();
+              if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+                alert('Vui lòng nhập link URL hợp lệ bắt đầu bằng https://');
+                return;
+              }
+              onChange((prev) => [
+                ...(Array.isArray(prev) ? prev : list),
+                { url: trimmed, name: trimmed.split('/').pop()?.split('?')[0] || 'fashion.jpg' },
+              ]);
+            }
+          }}
+          disabled={up.busy}
+        >
+          Dán link
         </Ghost>
         <Ghost icon="ph-images" onClick={() => up.fromAlbum(true)} disabled={up.busy}>
           Album
@@ -435,6 +472,31 @@ export function VideoInput({ items, onChange, lockedUrls, onResetLocks }) {
       <div className="mt-3 flex flex-wrap gap-2">
         <Ghost icon="ph-upload-simple" onClick={() => up.inputRef.current?.click()} disabled={up.busy}>
           Tải video
+        </Ghost>
+        <Ghost
+          icon="ph-link"
+          onClick={() => {
+            const url = window.prompt('Nhập hoặc dán link URL video tham chiếu (https://...):');
+            if (url && url.trim()) {
+              const trimmed = url.trim();
+              if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+                alert('Vui lòng nhập link URL hợp lệ bắt đầu bằng https://');
+                return;
+              }
+              const sec = window.prompt('Thời lượng video tính bằng giây (ví dụ: 15):', '15');
+              onChange((prev) => [
+                ...(Array.isArray(prev) ? prev : list),
+                {
+                  url: trimmed,
+                  name: trimmed.split('/').pop()?.split('?')[0] || 'video.mp4',
+                  seconds: Number(sec) || 15,
+                },
+              ]);
+            }
+          }}
+          disabled={up.busy}
+        >
+          Dán link
         </Ghost>
         <Ghost icon="ph-images" onClick={() => up.fromAlbum(true)} disabled={up.busy}>
           Album

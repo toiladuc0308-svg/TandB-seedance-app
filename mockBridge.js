@@ -69,6 +69,84 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
     return data;
   }
 
+  /**
+   * Upload media file / base64 to cloud (79AI or public fallback) to guarantee a valid https:// URL.
+   */
+  async function uploadMediaToCloud(payload, kind = 'image') {
+    const { token, domain } = getAuth();
+    const filename = payload.filename || (kind === 'video' ? 'video.mp4' : 'image.jpg');
+    const mime = payload.mime || (kind === 'video' ? 'video/mp4' : 'image/jpeg');
+
+    // 1. Try 79AI /ai/upload first if token exists
+    if (token && payload.base64) {
+      try {
+        console.info(`[79AI Upload] Uploading ${kind} to 79AI server...`);
+        const formData = new URLSearchParams();
+        formData.append('access_token', token);
+        formData.append('domain', domain || DEFAULT_DOMAIN);
+        formData.append('type', kind);
+        formData.append('filename', filename);
+        formData.append('base64', payload.base64);
+        if (payload.project_id) formData.append('project_id', payload.project_id);
+
+        const res = await fetch(`${API_BASE}/ai/upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: formData.toString(),
+        });
+        const json = await res.json();
+        const url =
+          json?.data?.url ||
+          json?.url ||
+          json?.data?.file_url ||
+          json?.file_url ||
+          json?.items?.[0]?.url;
+
+        if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+          console.info('[79AI Upload] Success via 79AI:', url);
+          return url;
+        }
+        console.warn('[79AI Upload] 79AI upload response was not a direct URL:', json);
+      } catch (err) {
+        console.warn('[79AI Upload] 79AI upload failed, trying fallback:', err);
+      }
+    }
+
+    // 2. Fallback: Upload to tmpfiles.org to get a real direct HTTPS link
+    if (payload.base64) {
+      try {
+        console.info(`[79AI Upload] Uploading ${kind} to public host fallback...`);
+        const byteCharacters = atob(payload.base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mime });
+
+        const form = new FormData();
+        form.append('file', blob, filename);
+
+        const res = await fetch('https://tmpfiles.org/api/v1/upload', {
+          method: 'POST',
+          body: form,
+        });
+        const json = await res.json();
+        if (json?.data?.url) {
+          const directUrl = json.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+          console.info('[79AI Upload] Fallback upload success:', directUrl);
+          return directUrl;
+        }
+      } catch (err) {
+        console.warn('[79AI Upload] Fallback host failed:', err);
+      }
+    }
+
+    throw new Error(
+      'Không thể tạo link URL công khai cho file media vừa chọn. Vui lòng kiểm tra kết nối mạng hoặc sử dụng tính năng "Dán link" (https://...).'
+    );
+  }
+
   window.gommoMiniApp = {
     isBridge: true,
 
@@ -106,7 +184,7 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
     async call(action, payload = {}) {
       const { token, domain } = getAuth();
 
-      // App Settings persistence
+      // App Settings persistence with Quota protection
       if (action === 'app.settings.get') {
         try {
           const raw = localStorage.getItem(SETTINGS_KEY);
@@ -121,6 +199,18 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
           const raw = localStorage.getItem(SETTINGS_KEY);
           const current = raw ? JSON.parse(raw) : {};
           const next = { ...current, ...(payload.value || {}) };
+
+          // Sanitize: Do not store giant base64 strings in localStorage!
+          if (next.character?.url?.startsWith('data:')) {
+            next.character = null;
+          }
+          if (Array.isArray(next.fashion)) {
+            next.fashion = next.fashion.filter((f) => f?.url && !f.url.startsWith('data:'));
+          }
+          if (Array.isArray(next.videos)) {
+            next.videos = next.videos.filter((v) => v?.url && !v.url.startsWith('data:'));
+          }
+
           localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
           return { ok: true };
         } catch (e) {
@@ -131,17 +221,13 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
 
       // Media Uploads
       if (action === 'media.upload_image') {
-        const url = payload.base64
-          ? `data:${payload.mime || 'image/jpeg'};base64,${payload.base64}`
-          : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80';
+        const url = await uploadMediaToCloud(payload, 'image');
         return { url, name: payload.filename || 'image.jpg' };
       }
 
       if (action === 'media.upload_video') {
-        const url = payload.base64
-          ? `data:${payload.mime || 'video/mp4'};base64,${payload.base64}`
-          : SAMPLE_VIDEOS[0];
-        return { url, name: payload.filename || 'video.mp4', seconds: 15 };
+        const url = await uploadMediaToCloud(payload, 'video');
+        return { url, name: payload.filename || 'video.mp4', seconds: payload.seconds || 15 };
       }
 
       if (action === 'album.open_picker') {
@@ -189,21 +275,11 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
 
         // 1. If we have a token, route to real 79AI backend
         if (token) {
-          try {
-            return await call79AI(endpoint, {
-              method,
-              params: payload.params,
-              body: payload.body,
-            });
-          } catch (err) {
-            console.error(`[79AI Bridge] Real call to ${endpoint} failed:`, err);
-            // Fallback for models or projects if network issues occur
-            if (endpoint.startsWith('/ai/projects')) {
-              console.warn('[79AI Bridge] Falling back to demo projects');
-            } else {
-              throw err;
-            }
-          }
+          return await call79AI(endpoint, {
+            method,
+            params: payload.params,
+            body: payload.body,
+          });
         }
 
         // 2. No token: Real call for models if possible (models list is public)
