@@ -1,6 +1,8 @@
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import path from 'path';
+import fs from 'fs';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -8,6 +10,19 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+const distPath = path.join(__dirname, 'dist');
+const indexPath = path.join(distPath, 'index.html');
+
+// Ensure dist exists; if missing, build it immediately
+if (!fs.existsSync(indexPath)) {
+  console.log('[Setup] dist/index.html not found. Running npm run build...');
+  try {
+    execSync('npm run build', { stdio: 'inherit' });
+  } catch (err) {
+    console.error('[Setup] Error running build fallback:', err);
+  }
+}
 
 // Proxy for Gommo API
 app.use(
@@ -36,11 +51,15 @@ app.use(
 );
 
 // Serve production static assets from dist
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(distPath));
 
-// SPA fallback for Express 5
+// SPA fallback
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(500).send('Application build in progress or dist/index.html missing. Please rebuild.');
+  }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
