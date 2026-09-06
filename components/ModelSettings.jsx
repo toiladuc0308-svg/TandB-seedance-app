@@ -96,7 +96,10 @@ export default function ModelSettings({
             label="Tỉ lệ"
             options={opts.ratios}
             value={settings.ratio}
-            onChange={(v) => onPatchSettings({ ratio: v })}
+            onChange={(v) => {
+              console.log('[DEBUG_RATIO_1] ModelSettings.jsx: User selected ratio:', v);
+              onPatchSettings({ ratio: v });
+            }}
           />
           <OptionGroup
             label="Độ phân giải"
