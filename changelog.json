@@ -1,0 +1,169 @@
+[
+  {
+    "version": "1.2.9",
+    "changed_at": "2026-09-05T13:40:00.000Z",
+    "type": "fix",
+    "title": "Fix lỗi upload 10 video chỉ hiển thị 2 video — race condition đo thời lượng & logging chi tiết",
+    "items": [
+      "Root cause: Khi upload nhiều video, effect đo probeVideoDuration chạy bất đồng bộ với closure `list` cũ. Khi đo xong, effect gọi onChange(list.map(...)) với danh sách cũ (2 video ban đầu), ghi đè toàn bộ các video mới upload.",
+      "components/MediaInputs.jsx: Chuyển toàn bộ các lệnh cập nhật state trong VideoInput và FashionInput sang functional update onChange((prev) => ...) để luôn gộp đúng trên state mới nhất, không bị ghi đè.",
+      "components/MediaInputs.jsx: Đổi key render sang `${it.url}_${index}` để tránh trùng key React làm mất phần tử hiển thị.",
+      "Logging kiểm chứng: In log số lượng video thực tế ở từng bước: [upload] [sau upload], [videoInput] [sau upload], [videoInput] [trước khi render], và [library] [sau khi gọi API list].",
+      "lib/videoLibrary.js & components/ProjectLibrary.jsx: Bổ sung log số lượng raw/normalized video sau khi gọi API list."
+    ]
+  },
+  {
+    "version": "1.2.8",
+    "changed_at": "2026-09-05T09:00:00.000Z",
+    "type": "update",
+    "title": "Ẩn UI chẩn đoán project — không đụng logic project_id",
+    "items": [
+      "app.jsx: bỏ import và bỏ mount <ProjectDiagnostics /> → panel '0b · Chẩn đoán project' (project đang chọn / project_id gửi lên / dạng id) không còn hiển thị",
+      "components/ProjectLibrary.jsx: lọc riêng message 'Chưa xác định được project…' trước setError → dòng cảnh báo vàng trong mọi khối 'Thư viện video của project' bị ẩn (app.jsx + 2 chỗ mount trong Storyboard); lỗi API thật vẫn hiển thị nguyên",
+      "Giữ nguyên 100%: lib/projectState.js (activeProjectId, userChoiceId, idField, getApiProjectId, setProjectIdField), lib/projects.js, lib/projectBridge.js, lib/videoLibrary.js, lib/engine.js — luồng chọn project và luồng gửi project_id vào /ai/create-video không thay đổi",
+      "components/ProjectDiagnostics.jsx và lib/projectProbe.js giữ lại trong workspace nhưng không còn được render (không xoá để tránh ảnh hưởng logic khác)",
+      "Không thêm/xoá endpoint, không đổi tên biến, không đổi cấu trúc state"
+    ]
+  },
+  {
+    "version": "1.2.7",
+    "changed_at": "2026-09-04T10:00:00.000Z",
+    "type": "fix",
+    "title": "Video vẫn vào project mặc định — dựng chẩn đoán dạng project_id thay vì đoán tiếp",
+    "items": [
+      "Bối cảnh: các bản 1.2.1→1.2.6 đều đoán một nguyên nhân rồi sửa mù. Bản này KHÔNG đoán thêm dạng id: nó đo trực tiếp dạng id nào backend thật sự resolve",
+      "lib/projectState.js: registry raw row của mọi project (registerProjectRows/getProjectRow), collectProjectIdCandidates liệt kê mọi dạng id có thật trong row, setProjectIdField chốt dạng id gửi lên; getApiProjectId là NGUỒN DUY NHẤT quyết định project_id nên gommoApi + bridge guard + library query + engine đổi theo cùng lúc",
+      "lib/projects.js: giữ lại raw row + candidates (trước đây bị bỏ đi nên không thể chẩn đoán), findProject khớp thêm theo mọi dạng id ứng viên",
+      "lib/api.js: shouldInjectProject dùng cùng luật với projectBridge.shouldInject (khớp cả dạng có query string) — hết lệch luật giữa hai tầng inject",
+      "lib/projectProbe.js (mới): probe không tốn credit — lần lượt chốt từng dạng id rồi gọi endpoint list video qua đúng đường request thật, đối chiếu project_id trong row trả về",
+      "components/ProjectDiagnostics.jsx (mới, panel 0b): hiện project_id thực đang gửi, chip chọn dạng id (persist qua app.settings.projectIdField), nút chạy probe, bảng gửi vs backend trả về kèm cờ MISMATCH, raw row của project đang chọn",
+      "app.jsx: mount ProjectDiagnostics và mount ProjectLibrary — file thư viện đã tồn tại từ trước nhưng CHƯA HỀ được render, nên không có cách nào xác nhận video nằm ở project nào",
+      "Kết luận chẩn đoán: nếu một dạng id khác id_base trả về đúng video → root cause ở client, chọn dạng đó; nếu mọi dạng đều trả về project mặc định trong khi cột gửi đúng id → backend nhận project_id nhưng vẫn ghi vào project mặc định, Mini App không sửa được"
+    ]
+  },
+  {
+    "version": "1.2.6",
+    "changed_at": "2026-09-03T18:00:00.000Z",
+    "type": "fix",
+    "title": "Video vào project mặc định — dùng id_base làm project_id, chặn autosave ghi rỗng, gắn project_id cho upload/album",
+    "items": [
+      "Root cause 1: normalizeProject() đọc row.id trước và bỏ qua row.id_base → UI gửi id nội bộ, backend không khớp nên rơi về project mặc định. Nay ưu tiên id_base → project_id → id, giữ rawId để so khớp giá trị đã lưu từ bản cũ",
+      "Root cause 2: autosave trong useStudio ghi projectId = getActiveProjectId() kể cả khi store chưa resolve ('') → xoá project đã lưu → lần load sau resolve về 'default'. Thêm patchSettingsKeepProject() bỏ hẳn key projectId khi rỗng",
+      "lib/projects.js: thêm findProject() khớp cả id_base và id nội bộ; resolveProjectId ưu tiên match rồi mới 'default' → project đầu",
+      "components/ProjectPicker.jsx: ưu tiên lựa chọn user trong session (store) trước savedId khi reload list, dropdown hiển thị 'project_id gửi API: …' + id nội bộ, log resolve project_id",
+      "lib/media.js: media.upload_image / media.upload_video / album.open_picker gắn project_id tường minh (bridge action không đi qua api.call nên guard không inject) + console.info project_id",
+      "lib/api.js: withProjectPayload ghi đè project_id cũ (stale) trong body thay vì chỉ set khi thiếu"
+    ]
+  },
+  {
+    "version": "1.2.5",
+    "changed_at": "2026-09-03T15:00:00.000Z",
+    "type": "fix",
+    "title": "Video vẫn vào project mặc định — bỏ sentinel 'default' khi khởi tạo + bridge guard tự patch lại",
+    "items": [
+      "lib/projectState.js: store khởi tạo activeProjectId = '' (không còn gửi sentinel 'default' trước khi API List Projects trả về), thêm markProjectResolved/isProjectResolved",
+      "lib/projectBridge.js (mới): guard kiểm tra window.gommoMiniApp.call trước mỗi request + interval 1.5s, tự patch lại khi parent thay bridge → poll /ai/video và mọi call trực tiếp luôn mang project_id",
+      "lib/api.js: gọi ensureProjectBridgeGuard() trong withProjectPayload và GHI ĐÈ project_id thay vì chỉ set khi thiếu",
+      "lib/engine.js: chặn tạo video kèm thông báo rõ khi chưa resolve được project từ API List Projects",
+      "components/ProjectPicker.jsx: thêm nút 'Tải lại danh sách', trạng thái bridge guard, cảnh báo khi chưa resolve project"
+    ]
+  },
+  {
+    "version": "1.2.4",
+    "changed_at": "2026-09-03T12:00:00.000Z",
+    "type": "fix",
+    "title": "Chuẩn hóa Project ID theo API List Projects (bỏ mọi cơ chế suy đoán)",
+    "items": [
+      "lib/projects.js: bỏ ensureDefaultProject() chèn project 'default' giả; resolveProjectId = giữ current nếu còn trong list → id 'default' nếu API trả về → project đầu tiên",
+      "lib/projectState.js: store khởi tạo 'default', getApiProjectId() trả đúng project đang chọn (rỗng khi chưa có), getHostProjectId() thành stub deprecated (không đọc context/query string)",
+      "components/ProjectPicker.jsx: chỉ còn dropdown name → id từ POST /ai/projects, bỏ ô 'Project ID thủ công' và cảnh báo suy đoán; hiển thị project_id đang gửi",
+      "lib/api.js: thêm watchProjectError — /ai/create-video lỗi liên quan project thì console.error kèm project_id đã gửi, không retry và không đổi tên field",
+      "lib/engine.js: project_id cho create-video lấy trực tiếp từ project đang chọn, bỏ fallback host project id; logic render giữ nguyên"
+    ]
+  },
+  {
+    "version": "1.2.3",
+    "changed_at": "2026-09-03T09:00:00.000Z",
+    "type": "fix",
+    "title": "Dùng đúng API List Projects và luôn gửi project_id (kể cả 'default')",
+    "items": [
+      "lib/projectState.js: PROJECT_LIST_ENDPOINT = '/ai/projects' (bỏ 8 endpoint tự đoán), thêm isValidProjectId, getApiProjectId() trả về project đang chọn kể cả 'default' thay vì rỗng",
+      "lib/projects.js: loadProjectsDetailed chỉ gọi POST /ai/projects một lần (body access_token + domain do bridge gắn), normalize theo { id, name }, không còn dò bridge action hay GET fallback",
+      "components/ProjectPicker.jsx: load danh sách project khi khởi tạo giao diện, mặc định id 'default', chỉ báo lỗi khi API list thật sự lỗi",
+      "create-video/poll: project_id của project đang chọn luôn được truyền qua withProjectPayload + bridge interceptor; logic render giữ nguyên"
+    ]
+  },
+  {
+    "version": "1.2.2",
+    "changed_at": "2026-09-02T15:10:00.000Z",
+    "type": "fix",
+    "title": "Video vẫn vào project mặc định — bỏ phụ thuộc endpoint list project đoán + chẩn đoán project_id",
+    "items": [
+      "Root cause: 3 endpoint list project ('/ai/projects', '/ai/project/list', '/ai/list-projects') là endpoint tự đoán, không có trong SDK bundle nào → list luôn rỗng → app đứng ở sentinel 'default' → getApiProjectId() trả rỗng → /ai/create-video KHÔNG hề mang project_id",
+      "lib/projectState.js: thêm isRealProjectId + getHostProjectId (đọc __gommoMiniAppContext / query string) làm fallback, khởi tạo store từ host project id, mở rộng danh sách endpoint thử",
+      "lib/projects.js: loadProjectsDetailed không throw (trả items + error + endpoint), thử thêm bridge action project.list/projects.list/app.project.list trước khi thử REST",
+      "components/ProjectPicker.jsx: thêm ô nhập 'Project ID thủ công' + nút Áp dụng, hiển thị project_id đang gửi và host project id, cảnh báo vàng khi request sẽ không kèm project_id",
+      "lib/api.js: log window.__gommoProjectDebug (50 entry gần nhất) + __gommoProjectLastSent, console.info project_id mỗi lần create-video, warn khi thiếu",
+      "lib/engine.js: đọc project_id backend TRẢ VỀ trong response create và cảnh báo MISMATCH khi lệch với project_id đã gửi (phát hiện parent bridge ghi đè)"
+    ]
+  },
+  {
+    "version": "1.2.1",
+    "changed_at": "2026-09-02T12:30:00.000Z",
+    "type": "fix",
+    "title": "Fix kết quả trả về project mặc định + autosave settings 30s",
+    "items": [
+      "Root cause: pollMediaJob gọi window.gommoMiniApp.call('api.call') trực tiếp nên body poll /ai/video không có project_id → kết quả đọc ở scope project mặc định",
+      "lib/api.js: cài interceptor patch bridge call một lần, tự gắn project_id cho mọi api.call tới /ai/* (body/params/data), có retry chờ bridge sẵn sàng",
+      "lib/projectState.js: state chuyển sang singleton trên window + thêm getApiProjectId() để không gửi sentinel id 'default' lên backend",
+      "lib/engine.js: snapshot project id lúc tạo job, truyền vào cả buildCreateVideoBody và pollMediaJob để create + poll cùng scope khi đổi project giữa run",
+      "components/ProjectPicker.jsx: áp project đã lưu ngay khi hydrate, await + retry patchSettings, không reset về 'default' khi load list lỗi",
+      "lib/projects.js: resolveProjectId giữ nguyên lựa chọn hiện tại khi danh sách project không tải được",
+      "lib/useStudio.js: autosave settings mỗi 30s (chỉ ghi khi dirty), flush thêm khi visibilitychange/beforeunload và khi đổi project; projectId nằm trong payload persist"
+    ]
+  },
+  {
+    "version": "1.2.0",
+    "changed_at": "2026-09-02T09:00:00.000Z",
+    "type": "feature",
+    "title": "Chọn Project và gửi project_id trong mọi request",
+    "items": [
+      "Thêm panel '0 · Project' với dropdown searchable hiển thị name, mô tả phụ là project id",
+      "Gọi API List Projects khi mở app, mặc định chọn project có id = 'default'",
+      "Lưu project đã chọn qua app.settings (key projectId) và hydrate lại lần mở sau",
+      "lib/api.js tự gắn project_id vào mọi request /ai/* (body cho POST, params cho GET)",
+      "Đổi project → reload danh sách model và mọi request kế tiếp dùng project mới",
+      "Thêm lib/projectState.js (state + subscribe) và lib/projects.js (load + normalize + fallback default)"
+    ]
+  },
+  {
+    "version": "1.1.0",
+    "changed_at": "2026-09-01T09:00:00.000Z",
+    "type": "feature",
+    "title": "Preview ảnh, thời lượng theo video upload, tải ZIP hàng loạt",
+    "items": [
+      "Ảnh nhân vật: nút Preview trên panel, hiển thị full ảnh theo đúng tỉ lệ (object-contain, không crop), click ảnh mở lightbox",
+      "Thời lượng video: mode mặc định 'Theo video upload' tự lấy thời lượng video tham chiếu (ref 15s → render 15s)",
+      "Vẫn giữ lựa chọn thủ công 5s/6s/7s… dạng chip ở panel 4 · Model video",
+      "Thêm nút 'Tải về hàng loạt (ZIP)' đóng gói toàn bộ video thành công thành 1 file zip",
+      "Video lỗi hoặc đang render không được đưa vào ZIP; báo số file bị CORS chặn",
+      "Thêm lib/zip.js — ZIP writer store method thuần JS (CRC32 + central directory)"
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "changed_at": "2026-08-31T11:40:00.000Z",
+    "type": "create",
+    "title": "Khởi tạo Seedance Fashion Studio",
+    "items": [
+      "Menu trái 5 cụm: ảnh nhân vật, ảnh thời trang, list video, model video, cấu hình chạy",
+      "Model video load từ /ai/models, mặc định seedance_20_pro_edit, prompt Seedance mặc định",
+      "Engine ghép ảnh nhân vật + ảnh thời trang + video ref → /ai/create-video, poll /ai/video 15s",
+      "Quản lý phiên dạng tab, số luồng đồng thời, số video tối đa",
+      "Storyboard grid 1-6 cột, loading % giả lập + timer, message API, nút tạo lại",
+      "Panel thống kê tổng task/done/error/pending/credit",
+      "Khoá thời trang & video dùng 1 lần + reset, random thời trang/video",
+      "Thông báo Telegram khi thành công và gửi media theo cụm"
+    ]
+  }
+]

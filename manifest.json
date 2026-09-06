@@ -1,0 +1,114 @@
+{
+  "name": "AI Video Studio",
+  "description": "Studio ghép ảnh nhân vật + ảnh thời trang + video tham chiếu để tạo hàng loạt video Seedance, có quản lý phiên, storyboard grid, luồng đồng thời và thông báo Telegram.",
+  "tags": [
+    "video",
+    "seedance",
+    "fashion",
+    "batch",
+    "storyboard"
+  ],
+  "version": "1.2.8",
+  "features": [
+    {
+      "name": "Nhập ảnh nhân vật (1 ảnh)",
+      "description": "Upload hoặc chọn album 1 ảnh nhân vật, map @image1.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "Nhập nhiều ảnh thời trang",
+      "description": "Upload/album nhiều ảnh thời trang, map @image2, hỗ trợ khoá dùng 1 lần.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "Nhập nhiều video tham chiếu",
+      "description": "Upload/album nhiều video, map @video1, hỗ trợ khoá dùng 1 lần.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "Panel model video",
+      "description": "Load /ai/models type video, mặc định seedance_20_pro_edit, chọn ratio/resolution/duration/mode + prompt mặc định Seedance.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "Panel cấu hình chạy",
+      "description": "Random thời trang/video, dùng 1 lần + reset, thông báo Telegram, gửi media theo cụm, timeout tạo video.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "Quản lý phiên dạng tab",
+      "description": "Mỗi lần Tạo sinh một phiên mới với tab riêng, số luồng đồng thời và số video tối đa.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "Storyboard grid",
+      "description": "Grid phân cảnh 1-6 cột, loading % giả lập + đồng hồ, message trạng thái từ API, nút tạo lại từng phân cảnh.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "Thống kê tổng",
+      "description": "Tổng task, done, error, pending và tổng credit trên các phân cảnh thành công.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "Preview ảnh giữ đúng tỉ lệ",
+      "description": "Nút Preview cho ảnh nhân vật và ảnh thời trang, hiển thị full ảnh không crop/biến dạng, click mở lightbox lớn.",
+      "version": "1.1.0"
+    },
+    {
+      "name": "Mode thời lượng theo video upload",
+      "description": "Mặc định lấy thời lượng video tham chiếu để render (ref 15s → 15s), vẫn cho chọn thủ công 5s/6s/7s… ở panel model.",
+      "version": "1.1.0"
+    },
+    {
+      "name": "Tải về hàng loạt dạng ZIP",
+      "description": "Đóng gói toàn bộ video render thành công thành 1 file ZIP; bỏ qua video lỗi hoặc đang render.",
+      "version": "1.1.0"
+    },
+    {
+      "name": "Chọn Project (project_id)",
+      "description": "Gọi POST /ai/projects (API List Projects chính thức: access_token + domain) khi khởi tạo giao diện, normalize id theo id_base (id gửi API) + rawId (id nội bộ), dropdown hiển thị name và mô tả rõ project_id sẽ gửi, mặc định chọn id 'default' nếu tồn tại — nếu không thì project đầu tiên, lưu lựa chọn qua app.settings và truyền project_id đang chọn vào create-video cùng mọi request /ai/*.",
+      "version": "1.2.6"
+    },
+    {
+      "name": "Bridge guard project_id",
+      "description": "Kiểm tra lại window.gommoMiniApp.call trước mỗi request và mỗi 1.5s, tự patch lại khi parent thay bridge, ghi đè project_id cho mọi /ai/* (trừ /ai/projects) nên create-video và poll /ai/video luôn cùng scope project.",
+      "version": "1.2.5"
+    },
+    {
+      "name": "Chặn tạo video khi chưa resolve project",
+      "description": "Store không còn khởi tạo sentinel 'default'; chỉ khi API List Projects trả về id thật mới đánh dấu resolved. Chưa resolve thì runScene báo lỗi rõ thay vì gửi request không kèm project_id.",
+      "version": "1.2.5"
+    },
+    {
+      "name": "Tự lưu settings mỗi 30s",
+      "description": "Autosave toàn bộ cấu hình (prompt, model, media, project) qua app.settings mỗi 30 giây, flush thêm khi ẩn tab / rời trang / đổi project; không bao giờ ghi projectId rỗng lên giá trị đã lưu.",
+      "version": "1.2.6"
+    },
+    {
+      "name": "project_id cho upload & album",
+      "description": "media.upload_image, media.upload_video và album.open_picker (bridge action không đi qua api.call) được gắn project_id của project đang chọn kèm log console để đối chiếu.",
+      "version": "1.2.6"
+    },
+    {
+      "name": "Chẩn đoán project_id gửi/nhận",
+      "description": "Hiển thị project_id thực tế đang gửi (kèm id nội bộ khi khác id_base) + trạng thái bridge guard + nút Tải lại danh sách trên panel Project, log resolve project_id, window.__gommoProjectDebug và console.error kèm project_id đã gửi khi create-video trả lỗi liên quan project (không tự retry).",
+      "version": "1.2.7"
+    },
+    {
+      "name": "Chọn dạng project_id gửi backend",
+      "description": "Lưu raw row của mọi project từ /ai/projects, liệt kê mọi dạng id ứng viên (id_base, id, project_id, code, slug…) và cho chốt dạng id gửi lên backend qua app.settings.projectIdField; getApiProjectId là nơi duy nhất quyết định giá trị project_id nên mọi tầng inject đổi theo.",
+      "version": "1.2.7"
+    },
+    {
+      "name": "Ẩn UI chẩn đoán project",
+      "description": "Panel '0b · Chẩn đoán project' không còn được mount và dòng cảnh báo 'Chưa xác định được project…' trong 'Thư viện video của project' bị ẩn. Logic chọn project, biến project_id, store project đang chọn và luồng gửi project_id vào create-video giữ nguyên 100%.",
+      "version": "1.2.8"
+    },
+    {
+      "name": "Thư viện video của project",
+      "description": "Render ProjectLibrary (trước đây tồn tại nhưng chưa được mount): query danh sách video bằng cùng project_id mà engine dùng lúc tạo job, tự làm mới sau mỗi scene thành công và khi đổi project.",
+      "version": "1.2.7"
+    }
+  ]
+}
