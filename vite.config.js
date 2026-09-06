@@ -17,6 +17,12 @@ export default defineConfig({
           Referer: 'https://79ai.net/',
         },
       },
+      '/catbox-upload': {
+        target: 'https://catbox.moe',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/catbox-upload/, '/user/api.php'),
+        secure: false,
+      },
     },
   },
 });

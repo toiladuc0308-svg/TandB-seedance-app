@@ -70,29 +70,41 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
   }
 
   /**
-   * Upload media file / base64 to cloud (79AI or public fallback) to guarantee a valid https:// URL.
+   * Upload media file to get a direct, permanent, publicly reachable HTTPS URL.
    */
   async function uploadMediaToCloud(payload, kind = 'image') {
     const { token, domain } = getAuth();
     const filename = payload.filename || (kind === 'video' ? 'video.mp4' : 'image.jpg');
     const mime = payload.mime || (kind === 'video' ? 'video/mp4' : 'image/jpeg');
 
-    // 1. Try 79AI /ai/upload first if token exists
-    if (token && payload.base64) {
+    let fileObj = payload.file;
+    if (!fileObj && payload.base64) {
       try {
-        console.info(`[79AI Upload] Uploading ${kind} to 79AI server...`);
-        const formData = new URLSearchParams();
-        formData.append('access_token', token);
-        formData.append('domain', domain || DEFAULT_DOMAIN);
-        formData.append('type', kind);
-        formData.append('filename', filename);
-        formData.append('base64', payload.base64);
-        if (payload.project_id) formData.append('project_id', payload.project_id);
+        const byteCharacters = atob(payload.base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        fileObj = new Blob([new Uint8Array(byteNumbers)], { type: mime });
+      } catch (e) {
+        console.warn('[Upload] Failed to parse base64 blob:', e);
+      }
+    }
+
+    // 1. Try 79AI official /ai/upload first if token exists
+    if (token && fileObj) {
+      try {
+        console.info(`[79AI Upload] Uploading ${kind} to 79AI server via FormData...`);
+        const form = new FormData();
+        form.append('access_token', token);
+        form.append('domain', domain || DEFAULT_DOMAIN);
+        form.append('type', kind);
+        form.append('file', fileObj, filename);
+        if (payload.project_id) form.append('project_id', payload.project_id);
 
         const res = await fetch(`${API_BASE}/ai/upload`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-          body: formData.toString(),
+          body: form,
         });
         const json = await res.json();
         const url =
@@ -106,44 +118,35 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
           console.info('[79AI Upload] Success via 79AI:', url);
           return url;
         }
-        console.warn('[79AI Upload] 79AI upload response was not a direct URL:', json);
       } catch (err) {
-        console.warn('[79AI Upload] 79AI upload failed, trying fallback:', err);
+        console.warn('[79AI Upload] 79AI upload failed, trying public host:', err);
       }
     }
 
-    // 2. Fallback: Upload to tmpfiles.org to get a real direct HTTPS link
-    if (payload.base64) {
+    // 2. Upload via /catbox-upload to get permanent raw direct HTTPS URL
+    if (fileObj) {
       try {
-        console.info(`[79AI Upload] Uploading ${kind} to public host fallback...`);
-        const byteCharacters = atob(payload.base64);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: mime });
-
+        console.info(`[Upload] Uploading ${kind} to permanent host...`);
         const form = new FormData();
-        form.append('file', blob, filename);
+        form.append('reqtype', 'fileupload');
+        form.append('fileToUpload', fileObj, filename);
 
-        const res = await fetch('https://tmpfiles.org/api/v1/upload', {
+        const res = await fetch('/catbox-upload', {
           method: 'POST',
           body: form,
         });
-        const json = await res.json();
-        if (json?.data?.url) {
-          const directUrl = json.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
-          console.info('[79AI Upload] Fallback upload success:', directUrl);
+        const directUrl = (await res.text()).trim();
+        if (directUrl && (directUrl.startsWith('https://') || directUrl.startsWith('http://'))) {
+          console.info('[Upload] Permanent direct URL:', directUrl);
           return directUrl;
         }
       } catch (err) {
-        console.warn('[79AI Upload] Fallback host failed:', err);
+        console.warn('[Upload] Permanent host failed:', err);
       }
     }
 
     throw new Error(
-      'Không thể tạo link URL công khai cho file media vừa chọn. Vui lòng kiểm tra kết nối mạng hoặc sử dụng tính năng "Dán link" (https://...).'
+      'Không thể tải file lên để tạo link trực tiếp. Vui lòng bấm "Dán link" để nhập URL trực tiếp (https://...).'
     );
   }
 
@@ -201,14 +204,18 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
           const next = { ...current, ...(payload.value || {}) };
 
           // Sanitize: Do not store giant base64 strings in localStorage!
-          if (next.character?.url?.startsWith('data:')) {
+          if (next.character?.url?.startsWith('data:') || next.character?.url?.includes('tmpfiles.org')) {
             next.character = null;
           }
           if (Array.isArray(next.fashion)) {
-            next.fashion = next.fashion.filter((f) => f?.url && !f.url.startsWith('data:'));
+            next.fashion = next.fashion.filter(
+              (f) => f?.url && !f.url.startsWith('data:') && !f.url.includes('tmpfiles.org')
+            );
           }
           if (Array.isArray(next.videos)) {
-            next.videos = next.videos.filter((v) => v?.url && !v.url.startsWith('data:'));
+            next.videos = next.videos.filter(
+              (v) => v?.url && !v.url.startsWith('data:') && !v.url.includes('tmpfiles.org')
+            );
           }
 
           localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
