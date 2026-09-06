@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 79AI & Gommo MiniApp Bridge for Standalone Localhost.
  * Supports direct connection to 79AI (api.gommo.net) when Access Token is provided,
  * with fallback to demo mock data when no token is present.
@@ -126,7 +126,7 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
     // 2. Upload via /catbox-upload to get permanent raw direct HTTPS URL
     if (fileObj) {
       try {
-        console.info(`[Upload] Uploading ${kind} to permanent host...`);
+        console.info(`[Upload] Uploading ${kind} to Catbox host...`);
         const form = new FormData();
         form.append('reqtype', 'fileupload');
         form.append('fileToUpload', fileObj, filename);
@@ -137,11 +137,32 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
         });
         const directUrl = (await res.text()).trim();
         if (directUrl && (directUrl.startsWith('https://') || directUrl.startsWith('http://'))) {
-          console.info('[Upload] Permanent direct URL:', directUrl);
+          console.info('[Upload] Catbox direct URL:', directUrl);
           return directUrl;
         }
       } catch (err) {
-        console.warn('[Upload] Permanent host failed:', err);
+        console.warn('[Upload] Catbox host failed:', err);
+      }
+
+      // 3. Fallback to Litterbox for large files or if Catbox fails
+      try {
+        console.info(`[Upload] Uploading ${kind} to Litterbox fallback...`);
+        const form = new FormData();
+        form.append('reqtype', 'fileupload');
+        form.append('time', '72h');
+        form.append('fileToUpload', fileObj, filename);
+
+        const res = await fetch('/litterbox-upload', {
+          method: 'POST',
+          body: form,
+        });
+        const directUrl = (await res.text()).trim();
+        if (directUrl && (directUrl.startsWith('https://') || directUrl.startsWith('http://'))) {
+          console.info('[Upload] Litterbox direct URL:', directUrl);
+          return directUrl;
+        }
+      } catch (err) {
+        console.warn('[Upload] Litterbox host failed:', err);
       }
     }
 

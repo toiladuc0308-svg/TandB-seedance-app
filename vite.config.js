@@ -1,4 +1,4 @@
-﻿import { defineConfig } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
@@ -21,6 +21,12 @@ export default defineConfig({
         target: 'https://catbox.moe',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/catbox-upload/, '/user/api.php'),
+        secure: false,
+      },
+      '/litterbox-upload': {
+        target: 'https://litterbox.catbox.moe',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/litterbox-upload/, '/resources/internals/api.php'),
         secure: false,
       },
     },

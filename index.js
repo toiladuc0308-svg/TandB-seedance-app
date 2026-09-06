@@ -45,8 +45,25 @@ app.use(
   createProxyMiddleware({
     target: 'https://catbox.moe',
     changeOrigin: true,
-    pathRewrite: { '^/catbox-upload': '/user/api.php' },
+    pathRewrite: () => '/user/api.php',
     secure: false,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    },
+  })
+);
+
+// Proxy for Litterbox Upload (fallback up to 1GB)
+app.use(
+  '/litterbox-upload',
+  createProxyMiddleware({
+    target: 'https://litterbox.catbox.moe',
+    changeOrigin: true,
+    pathRewrite: () => '/resources/internals/api.php',
+    secure: false,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    },
   })
 );
 
