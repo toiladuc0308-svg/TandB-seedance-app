@@ -1,6 +1,5 @@
 import SceneCard from './SceneCard.jsx';
 import BulkDownload from './BulkDownload.jsx';
-import ProjectLibrary from './ProjectLibrary.jsx';
 import { Chip, Label } from './Ui.jsx';
 
 export default function Storyboard({ session, columns, onColumns, timeoutSeconds, onRetry, tick }) {
@@ -13,7 +12,6 @@ export default function Storyboard({ session, columns, onColumns, timeoutSeconds
             Chưa có phiên nào. Cấu hình bên trái rồi bấm <span className="text-[#c7ff44]">Tạo</span>.
           </p>
         </div>
-        <ProjectLibrary refreshSignal={0} />
       </div>
     );
   }
@@ -61,7 +59,6 @@ export default function Storyboard({ session, columns, onColumns, timeoutSeconds
         ))}
       </div>
     </div>
-    <ProjectLibrary refreshSignal={doneCount} />
     </div>
   );
 }
