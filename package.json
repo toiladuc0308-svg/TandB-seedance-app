@@ -2,14 +2,25 @@
   "name": "tandb-seedance-app",
   "version": "1.0.0",
   "description": "TandB Seedance App - 79AI Integration",
-  "main": "index.js",
+  "main": "electron.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "postinstall": "npm run build",
     "preview": "vite preview",
-    "start": "node index.js"
+    "start": "node index.js",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "vite build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.tandb.seedance",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis"
+    }
   },
   "keywords": [],
   "author": "",
@@ -21,5 +32,12 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "vite": "^8.2.2"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3",
+    "wait-on": "^9.1.0"
   }
 }

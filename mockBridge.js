@@ -8,11 +8,16 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
   console.info('[79AI Bridge] Initializing 79AI bridge on localhost');
 
   const SETTINGS_KEY = 'seedance_fashion_studio_settings';
+  const isElectron = window.location.protocol === 'file:';
+  const GOMMO_API = isElectron ? 'https://api.gommo.net/api/apps/go-mmo' : (import.meta.env.VITE_GOMMO_API_URL || '/gommo-api');
+  const UPLOAD_API = isElectron ? 'https://catbox.moe/user/api.php' : (import.meta.env.VITE_CATBOX_UPLOAD_URL || '/catbox-upload');
+  const LITTERBOX_API = isElectron ? 'https://litterbox.catbox.moe/resources/internals/api.php' : (import.meta.env.VITE_LITTERBOX_UPLOAD_URL || '/litterbox-upload');
+
   const TOKEN_KEY = '79ai_access_token';
   const DOMAIN_KEY = '79ai_domain';
 
   const DEFAULT_DOMAIN = '79ai.net';
-  const API_BASE = '/gommo-api';
+  const API_BASE = GOMMO_API;
 
   const SAMPLE_VIDEOS = [
     'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
