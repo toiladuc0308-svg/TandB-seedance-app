@@ -1,15 +1,15 @@
 {
   "rewrites": [
     {
-      "source": "/gommo-api/:match*",
-      "destination": "https://api.gommo.net/api/apps/go-mmo/:match*"
+      "source": "/gommo-api/(.*)",
+      "destination": "https://api.gommo.net/api/apps/go-mmo/$1"
     },
     {
-      "source": "/catbox-upload",
+      "source": "/catbox-upload(.*)",
       "destination": "https://catbox.moe/user/api.php"
     },
     {
-      "source": "/litterbox-upload",
+      "source": "/litterbox-upload(.*)",
       "destination": "https://litterbox.catbox.moe/resources/internals/api.php"
     },
     {
