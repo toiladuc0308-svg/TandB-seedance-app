@@ -12,10 +12,13 @@ import { shortName, formatSeconds } from '../utils/format.js';
 
 const FIT_CLASS = { contain: 'object-contain', cover: 'object-cover' };
 
+import AlbumPickerModal from './AlbumPickerModal.jsx';
+
 function useUploader(kind, onDone) {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
   const inputRef = React.useRef(null);
+  const [albumOpen, setAlbumOpen] = React.useState(false);
 
   const handleFiles = async (files) => {
     if (!files || files.length === 0) return;
@@ -43,20 +46,24 @@ function useUploader(kind, onDone) {
   };
 
   const fromAlbum = async (multiple) => {
-    setBusy(true);
-    setError('');
-    try {
-      const items = await pickFromAlbum(kind, multiple);
-      console.info(`[upload] [sau upload / album] Nhận được ${items.length} media từ album (${kind})`);
-      if (items.length) onDone(items);
-    } catch (e) {
-      setError(e?.message || 'Không chọn được media');
-    } finally {
-      setBusy(false);
-    }
+    // Mở modal tự build thay vì gọi bridge (bridge không có UI trên desktop)
+    setAlbumOpen(true);
   };
+  
+  const renderAlbumModal = () => (
+    <AlbumPickerModal
+      isOpen={albumOpen}
+      onClose={() => setAlbumOpen(false)}
+      onSelect={(items) => {
+        if (items && items.length) {
+          onDone(items);
+        }
+      }}
+      kind={kind}
+    />
+  );
 
-  return { busy, error, inputRef, handleFiles, fromAlbum };
+  return { busy, error, inputRef, handleFiles, fromAlbum, renderAlbumModal };
 }
 
 function FitToggle({ fit, onChange }) {
@@ -184,6 +191,7 @@ export function CharacterInput({ value, onChange }) {
         ) : null}
       </div>
       {up.error ? <p className="mt-2 text-xs text-[#ef4444]">{up.error}</p> : null}
+        {up.renderAlbumModal()}
     </Panel>
   );
 }
@@ -342,6 +350,7 @@ export function FashionInput({ items, onChange, lockedUrls, onResetLocks }) {
       </div>
       {up.busy ? <p className="mt-2 text-xs text-[#777777]">Đang tải lên…</p> : null}
       {up.error ? <p className="mt-2 text-xs text-[#ef4444]">{up.error}</p> : null}
+        {up.renderAlbumModal()}
     </Panel>
   );
 }
@@ -544,6 +553,7 @@ export function VideoInput({ items, onChange, lockedUrls, onResetLocks }) {
       </div>
       {up.busy ? <p className="mt-2 text-xs text-[#777777]">Đang tải lên…</p> : null}
       {up.error ? <p className="mt-2 text-xs text-[#ef4444]">{up.error}</p> : null}
+        {up.renderAlbumModal()}
     </Panel>
   );
 }
