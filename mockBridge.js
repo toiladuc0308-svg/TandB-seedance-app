@@ -128,15 +128,15 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
       }
     }
 
-    // 2. Upload via /catbox-upload to get permanent raw direct HTTPS URL
+    // 2. Upload via UPLOAD_API to get permanent raw direct HTTPS URL
     if (fileObj) {
       try {
-        console.info(`[Upload] Uploading ${kind} to Catbox host...`);
+        console.info(`[Upload] Uploading ${kind} to Catbox host (${UPLOAD_API})...`);
         const form = new FormData();
         form.append('reqtype', 'fileupload');
         form.append('fileToUpload', fileObj, filename);
 
-        const res = await fetch('/catbox-upload', {
+        const res = await fetch(UPLOAD_API, {
           method: 'POST',
           body: form,
         });
@@ -151,13 +151,13 @@ if (typeof window !== 'undefined' && !window.gommoMiniApp) {
 
       // 3. Fallback to Litterbox for large files or if Catbox fails
       try {
-        console.info(`[Upload] Uploading ${kind} to Litterbox fallback...`);
+        console.info(`[Upload] Uploading ${kind} to Litterbox fallback (${LITTERBOX_API})...`);
         const form = new FormData();
         form.append('reqtype', 'fileupload');
         form.append('time', '72h');
         form.append('fileToUpload', fileObj, filename);
 
-        const res = await fetch('/litterbox-upload', {
+        const res = await fetch(LITTERBOX_API, {
           method: 'POST',
           body: form,
         });
