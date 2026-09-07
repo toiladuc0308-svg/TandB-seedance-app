@@ -23,7 +23,7 @@
     }
   },
   "keywords": [],
-  "author": "",
+  "author": "TandB",
   "license": "ISC",
   "dependencies": {
     "@vitejs/plugin-react": "^6.1.1",
